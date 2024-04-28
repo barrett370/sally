@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"html/template"
@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/barrett370/sally/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var config = `
+var exampleConfig = `
 
 url: go.uber.org
 packages:
@@ -32,7 +33,7 @@ packages:
 `
 
 func TestIndex(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/")
 	assert.Equal(t, 200, rr.Code)
 
 	body := rr.Body.String()
@@ -44,7 +45,7 @@ func TestIndex(t *testing.T) {
 }
 
 func TestSubindex(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/net")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/net")
 	assert.Equal(t, 200, rr.Code)
 
 	body := rr.Body.String()
@@ -55,7 +56,7 @@ func TestSubindex(t *testing.T) {
 }
 
 func TestPackageShouldExist(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/yarpc")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/yarpc")
 	AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -71,7 +72,7 @@ func TestPackageShouldExist(t *testing.T) {
 }
 
 func TestNonExistentPackageShould404(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/nonexistent")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/nonexistent")
 	assert.Equal(t, "no-cache", rr.Header().Get("Cache-Control"))
 	AssertResponse(t, rr, 404, `<!DOCTYPE html>
 <html>
@@ -88,7 +89,7 @@ func TestNonExistentPackageShould404(t *testing.T) {
 }
 
 func TestTrailingSlash(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/yarpc/")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/yarpc/")
 	AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -104,7 +105,7 @@ func TestTrailingSlash(t *testing.T) {
 }
 
 func TestDeepImports(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/yarpc/heeheehee")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/yarpc/heeheehee")
 	AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -118,7 +119,7 @@ func TestDeepImports(t *testing.T) {
 </html>
 `)
 
-	rr = CallAndRecord(t, config, getTestTemplates(t, nil), "/yarpc/heehee/hawhaw")
+	rr = CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/yarpc/heehee/hawhaw")
 	AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -134,7 +135,7 @@ func TestDeepImports(t *testing.T) {
 }
 
 func TestPackageLevelURL(t *testing.T) {
-	rr := CallAndRecord(t, config, getTestTemplates(t, nil), "/zap")
+	rr := CallAndRecord(t, exampleConfig, getTestTemplates(t, nil), "/zap")
 	AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -152,9 +153,9 @@ func TestPackageLevelURL(t *testing.T) {
 func TestPostRejected(t *testing.T) {
 	t.Parallel()
 
-	h, err := CreateHandler(&Config{
+	h, err := CreateHandler(&config.Config{
 		URL: "go.uberalt.org",
-		Packages: map[string]PackageConfig{
+		Packages: map[string]config.PackageConfig{
 			"zap": {
 				Repo: "github.com/uber-go/zap",
 			},
@@ -290,7 +291,7 @@ func TestCustomTemplates(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			_, err := CreateHandler(&Config{}, templates)
+			_, err := CreateHandler(&config.Config{}, templates)
 			require.Error(t, err, name)
 		}
 	})
@@ -301,11 +302,11 @@ func TestCustomTemplates(t *testing.T) {
 		})
 
 		// Overrides 404.html
-		rr := CallAndRecord(t, config, templates, "/blah")
+		rr := CallAndRecord(t, exampleConfig, templates, "/blah")
 		require.Equal(t, http.StatusNotFound, rr.Result().StatusCode)
 
 		// But not package.html
-		rr = CallAndRecord(t, config, templates, "/zap")
+		rr = CallAndRecord(t, exampleConfig, templates, "/zap")
 		AssertResponse(t, rr, 200, `
 <!DOCTYPE html>
 <html>
@@ -322,9 +323,9 @@ func TestCustomTemplates(t *testing.T) {
 }
 
 func BenchmarkHandlerDispatch(b *testing.B) {
-	handler, err := CreateHandler(&Config{
+	handler, err := CreateHandler(&config.Config{
 		URL: "go.uberalt.org",
-		Packages: map[string]PackageConfig{
+		Packages: map[string]config.PackageConfig{
 			"zap": {
 				Repo: "github.com/uber-go/zap",
 			},

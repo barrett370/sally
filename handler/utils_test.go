@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"bytes"
@@ -10,35 +10,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/barrett370/sally/config"
+	"github.com/barrett370/sally/templates"
+	"github.com/barrett370/sally/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
 )
 
-// TempFile persists contents and returns the path and a clean func
-func TempFile(t *testing.T, contents string) (path string) {
-	content := []byte(contents)
-	tmpfile, err := os.CreateTemp("", "sally-tmp")
-	require.NoError(t, err, "unable to create tmpfile")
-
-	_, err = tmpfile.Write(content)
-	require.NoError(t, err, "unable to write tmpfile")
-
-	err = tmpfile.Close()
-	require.NoError(t, err, "unable to close tmpfile")
-
-	t.Cleanup(func() {
-		_ = os.Remove(tmpfile.Name())
-	})
-
-	return tmpfile.Name()
-}
-
 // CreateHandlerFromYAML builds the Sally handler from a yaml config string
 func CreateHandlerFromYAML(t *testing.T, templates *template.Template, content string) (handler http.Handler) {
-	path := TempFile(t, content)
+	path := utils.TempFile(t, content)
 
-	config, err := Parse(path)
+	config, err := config.Parse(path)
 	require.NoError(t, err, "unable to parse path %s", path)
 
 	handler, err = CreateHandler(config, templates)
@@ -73,7 +57,7 @@ func getTestTemplates(tb testing.TB, overrideTemplates map[string]string) *templ
 	if len(overrideTemplates) == 0 {
 		// We must clone! Cloning can only be done before templates are executed. Therefore,
 		// we cannot run some tests without cloning, and then attempt cloning it. It'll panic.
-		templates, err := _templates.Clone()
+		templates, err := templates.Templates.Clone()
 		require.NoError(tb, err)
 		return templates
 	}
@@ -84,7 +68,7 @@ func getTestTemplates(tb testing.TB, overrideTemplates map[string]string) *templ
 		require.NoError(tb, err)
 	}
 
-	templates, err := getCombinedTemplates(templatesDir)
+	templates, err := utils.GetCombinedTemplates(templatesDir)
 	require.NoError(tb, err)
 	return templates
 }

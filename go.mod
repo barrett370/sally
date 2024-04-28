@@ -1,4 +1,4 @@
-module go.uber.org/sally
+module github.com/barrett370/sally
 
 go 1.21
 

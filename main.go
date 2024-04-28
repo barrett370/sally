@@ -8,7 +8,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"path/filepath"
+
+	"github.com/barrett370/sally/config"
+	"github.com/barrett370/sally/handler"
+	tmpls "github.com/barrett370/sally/templates"
+	"github.com/barrett370/sally/utils"
 )
 
 func main() {
@@ -18,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	log.Printf("Parsing yaml at path: %s\n", *yml)
-	config, err := Parse(*yml)
+	config, err := config.Parse(*yml)
 	if err != nil {
 		log.Fatalf("Failed to parse %s: %v", *yml, err)
 	}
@@ -26,31 +30,20 @@ func main() {
 	var templates *template.Template
 	if *tpls != "" {
 		log.Printf("Parsing templates at path: %s\n", *tpls)
-		templates, err = getCombinedTemplates(*tpls)
+		templates, err = utils.GetCombinedTemplates(*tpls)
 		if err != nil {
 			log.Fatalf("Failed to parse templates at %s: %v", *tpls, err)
 		}
 	} else {
-		templates = _templates
+		tmpls.Templates = templates
 	}
 
 	log.Printf("Creating HTTP handler with config: %v", config)
-	handler, err := CreateHandler(config, templates)
+	handler, err := handler.CreateHandler(config, templates)
 	if err != nil {
 		log.Fatalf("Failed to create handler: %v", err)
 	}
 
 	log.Printf(`Starting HTTP handler on ":%d"`, *port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), handler))
-}
-
-func getCombinedTemplates(dir string) (*template.Template, error) {
-	// Clones default templates to then merge with the user defined templates.
-	// This allows for the user to only override certain templates, but not all
-	// if they don't want.
-	templates, err := _templates.Clone()
-	if err != nil {
-		return nil, err
-	}
-	return templates.ParseGlob(filepath.Join(dir, "*.html"))
 }

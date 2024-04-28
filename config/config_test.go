@@ -1,15 +1,16 @@
-package main
+package config
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/barrett370/sally/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
-	path := TempFile(t, `
+	path := utils.TempFile(t, `
 
 url: google.golang.org
 packages:
@@ -32,7 +33,7 @@ packages:
 }
 
 func TestParsePackageLevelURL(t *testing.T) {
-	path := TempFile(t, `
+	path := utils.TempFile(t, `
 
 url: google.golang.org
 packages:
@@ -63,7 +64,7 @@ func TestParseGodocServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.give, func(t *testing.T) {
-			path := TempFile(t, fmt.Sprintf(`
+			path := utils.TempFile(t, fmt.Sprintf(`
 godoc:
   host: %q
 url: google.golang.org

@@ -1,21 +1,15 @@
-package main
+package handler
 
 import (
 	"cmp"
-	"embed"
 	"errors"
 	"html/template"
 	"net/http"
 	"path"
 	"slices"
 	"strings"
-)
 
-var (
-	//go:embed templates/*.html
-	templateFiles embed.FS
-
-	_templates = template.Must(template.ParseFS(templateFiles, "templates/*.html"))
+	"github.com/barrett370/sally/config"
 )
 
 // CreateHandler builds a new handler with the provided package configuration,
@@ -32,7 +26,7 @@ var (
 //		assuming that there's no package with the given name.
 //	GET /<name>/<subpkg>
 //		Package page for the given subpackage.
-func CreateHandler(config *Config, templates *template.Template) (http.Handler, error) {
+func CreateHandler(config *config.Config, templates *template.Template) (http.Handler, error) {
 	indexTemplate := templates.Lookup("index.html")
 	if indexTemplate == nil {
 		return nil, errors.New("template index.html is missing")
